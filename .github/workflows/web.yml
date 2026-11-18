@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -71,7 +71,7 @@ jobs:
             assert.equal(check.alerts.filter(alert => alert.type === 'recovery').length, 1, 'Recovery must be recorded once');
             await page.keyboard.press('Escape');
             assert.equal(await page.locator('[role="dialog"]').count(), 0);
-            assert.equal(await page.locator('#newCheckButton').evaluate(element => element === document.activeElement), false);
+            assert.equal(await page.locator('#newCheckButton').evaluate(element => element === document.activeElement), true, 'Dialog must return focus to its opener');
             await page.reload({ waitUntil: 'networkidle' });
             assert.equal(await page.locator('#totalChecks').textContent(), '6');
             await page.locator('#searchInput').fill('Production backup');
