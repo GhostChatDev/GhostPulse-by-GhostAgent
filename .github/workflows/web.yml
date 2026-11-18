@@ -1,0 +1,106 @@
+name: Web App Build
+
+on:
+  push:
+    paths: ['index.html', '.github/workflows/web.yml']
+  pull_request:
+    paths: ['index.html', '.github/workflows/web.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build static production app
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          html = Path('index.html').read_text()
+          assert html.startswith('<!doctype html>')
+          assert '<meta name="viewport" content="width=device-width, initial-scale=1">' in html
+          script = html.rsplit('<script>', 1)[1].split('</script>', 1)[0]
+          Path('/tmp/ghostpulse.js').write_text(script)
+          output = Path('dist')
+          output.mkdir(exist_ok=True)
+          (output / 'index.html').write_text(html)
+          print('Built dist/index.html')
+          PY
+          node --check /tmp/ghostpulse.js
+      - name: Install Chromium test browser
+        run: |
+          npm install --no-save --no-package-lock playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Test production app in Chromium
+        run: |
+          python3 -m http.server 4173 --directory dist >/tmp/ghostpulse-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID' EXIT
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          import assert from 'node:assert/strict';
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+          const errors = [];
+          page.on('pageerror', error => errors.push(error.message));
+          try {
+            await page.goto('http://127.0.0.1:4173', { waitUntil: 'networkidle' });
+            await page.locator('#newCheckButton').waitFor();
+            assert.equal(await page.locator('#totalChecks').textContent(), '5');
+            await page.locator('#newCheckButton').click();
+            await page.locator('#checkName').fill('Production backup');
+            await page.locator('#checkTags').fill('database, test');
+            await page.getByRole('button', { name: 'Create check', exact: true }).click();
+            await page.locator('#sendPing').click();
+            await page.locator('.detail-hero .status-pill.up').waitFor();
+            await page.locator('#failRun').click();
+            await page.locator('.detail-hero .status-pill.down').waitFor();
+            await page.locator('#failRun').click();
+            let check = await page.evaluate(() => window.ghostPulse.getChecks().find(item => item.name === 'Production backup'));
+            assert.equal(check.alerts.filter(alert => alert.type === 'down').length, 1, 'Failure must open one incident');
+            await page.locator('#sendPing').click();
+            check = await page.evaluate(() => window.ghostPulse.getChecks().find(item => item.name === 'Production backup'));
+            assert.equal(check.status, 'up');
+            assert.equal(check.alerts.filter(alert => alert.type === 'recovery').length, 1, 'Recovery must be recorded once');
+            await page.keyboard.press('Escape');
+            assert.equal(await page.locator('[role="dialog"]').count(), 0);
+            assert.equal(await page.locator('#newCheckButton').evaluate(element => element === document.activeElement), true);
+            await page.reload({ waitUntil: 'networkidle' });
+            assert.equal(await page.locator('#totalChecks').textContent(), '6');
+            await page.locator('#searchInput').fill('Production backup');
+            assert.equal(await page.locator('tbody tr').count(), 1);
+            await page.locator('#tagFilter').selectOption('database');
+            assert.equal(await page.locator('tbody tr').count(), 1);
+            await page.locator('#searchInput').fill('missing-check');
+            await page.getByText('No checks found', { exact: true }).waitFor();
+            await page.locator('#searchInput').fill('');
+            await page.locator('#tagFilter').selectOption('all');
+            await page.locator('tbody tr[data-check]').first().focus();
+            await page.keyboard.press('Enter');
+            await page.locator('[role="dialog"]').waitFor();
+            await page.keyboard.press('Escape');
+            await page.setViewportSize({ width: 390, height: 844 });
+            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'Mobile page must not scroll sideways');
+            await page.locator('#menuButton').click();
+            assert.equal(await page.locator('#menuButton').getAttribute('aria-expanded'), 'true');
+            await page.locator('[data-nav="incidents"]').click();
+            await page.locator('[data-tab="down"]').waitFor();
+            assert.deepEqual(errors, [], 'Browser must have no uncaught errors');
+            console.log('PASS: build, create, failure/recovery, persistence, filters, keyboard and mobile navigation');
+          } finally {
+            await browser.close();
+          }
+          JS
+      - name: Upload production artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghostpulse-web
+          path: dist
+          retention-days: 7
