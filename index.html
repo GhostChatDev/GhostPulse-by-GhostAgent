@@ -92,7 +92,7 @@ function seedChecks() {
     {id:uid(),name:'Nightly database backup',slug:'nightly-database-backup',description:'PostgreSQL backup to secure object storage.',tags:['database','production'],period:24,unit:'hours',grace:15,timezone:'UTC',lastPing:t-42*60000,nextDue:t+(24*60-42)*60000,status:'up',startedAt:null,pingCount:184,events:[{type:'success',time:t-42*60000,message:'Backup completed successfully'}],alerts:[],demo:true},
     {id:uid(),name:'Customer data sync',slug:'customer-data-sync',description:'Synchronize customer records with the data warehouse.',tags:['sync','production'],period:30,unit:'minutes',grace:5,lastPing:t-41*60000,nextDue:t-11*60000,status:'down',startedAt:null,pingCount:962,events:[{type:'down',time:t-6*60000,message:'No success ping within period + grace'},{type:'success',time:t-41*60000,message:'Success ping received'}],alerts:[{type:'down',time:t-6*60000}],demo:true},
     {id:uid(),name:'Weekly invoice digest',slug:'weekly-invoice-digest',description:'Generate and deliver the weekly account summary.',tags:['billing'],period:7,unit:'days',grace:60,lastPing:t-2*3600000,nextDue:t+(7*24-2)*3600000,status:'up',startedAt:null,pingCount:26,events:[{type:'success',time:t-2*3600000,message:'Invoice digest delivered'}],alerts:[],demo:true},
-    {id:uid(),name:'Search index refresh',slug:'search-index-refresh',description:'Refresh the product search index.',tags:['search','staging'],period:1,unit:'hours',grace:10,lastPing:t-58*60000,nextDue:t-2*60000,status:'grace',startedAt:null,pingCount:318,events:[{type:'success',time:t-58*60000,message:'Success ping received'}],alerts:[],demo:true},
+    {id:uid(),name:'Search index refresh',slug:'search-index-refresh',description:'Refresh the product search index.',tags:['search','staging'],period:1,unit:'hours',grace:10,lastPing:t-58*60000,nextDue:t-(-2)*60000,status:'grace',startedAt:null,pingCount:318,events:[{type:'success',time:t-58*60000,message:'Success ping received'}],alerts:[],demo:true},
     {id:uid(),name:'Legacy report export',slug:'legacy-report-export',description:'Paused while the export pipeline is migrated.',tags:['reports'],period:6,unit:'hours',grace:10,lastPing:t-3*3600000,nextDue:t+3*3600000,status:'paused',startedAt:null,pingCount:45,events:[{type:'paused',time:t-3600000,message:'Monitoring paused'}],alerts:[],demo:true}
   ];
 }
@@ -130,7 +130,7 @@ function record(check, type, message) {
   check.events = check.events.slice(0,100);
 }
 function evaluateCheck(check, notify = true) {
-  if (check.status === 'paused' || !check.lastPing) return;
+  if (check.status === 'paused' || check.manualDown || !check.lastPing) return;
   const t = now();
   const graceEnd = check.nextDue + check.grace * 60000;
   let next = check.status;
@@ -248,7 +248,7 @@ function refreshDetails(id) { save(); render(); openDetails(id); }
 function sendSuccess(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
   const t = now(), wasDown = check.status === 'down';
-  check.lastPing = t; check.nextDue = t + check.period * units[check.unit]; check.startedAt = null; check.status = 'up'; check.pingCount++;
+  check.lastPing = t; check.nextDue = t + check.period * units[check.unit]; check.startedAt = null; check.manualDown = false; check.status = 'up'; check.pingCount++;
   record(check,wasDown ? 'recovered' : 'success',wasDown ? 'Check recovered after a success ping' : 'Success ping received');
   if (wasDown) check.alerts.unshift({type:'recovery',time:t});
   refreshDetails(id); toast(wasDown ? 'Check recovered — one recovery event recorded.' : 'Success ping received.');
@@ -261,11 +261,11 @@ function startRun(id) {
 function failRun(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
   if (check.status !== 'down') { check.alerts.unshift({type:'down',time:now()}); record(check,'down','Explicit failure reported'); }
-  check.status = 'down'; check.startedAt = null; record(check,'failure','Job exited with a failure'); refreshDetails(id); toast('Failure recorded and one incident opened.');
+  check.status = 'down'; check.manualDown = true; check.startedAt = null; record(check,'failure','Job exited with a failure'); refreshDetails(id); toast('Failure recorded and one incident opened.');
 }
 function togglePause(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
-  if (check.status === 'paused') { check.status = check.lastPing ? 'up' : 'paused'; record(check,'resumed','Monitoring resumed'); evaluateCheck(check); toast(check.lastPing ? 'Monitoring resumed.' : 'Waiting for the first ping.'); }
+  if (check.status === 'paused') { check.manualDown = false; check.status = check.lastPing ? 'up' : 'paused'; record(check,'resumed','Monitoring resumed'); evaluateCheck(check); toast(check.lastPing ? 'Monitoring resumed.' : 'Waiting for the first ping.'); }
   else { check.status = 'paused'; check.startedAt = null; record(check,'paused','Monitoring paused'); toast('Monitoring paused. No alerts will be sent.'); }
   refreshDetails(id);
 }

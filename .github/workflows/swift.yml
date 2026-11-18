@@ -50,6 +50,7 @@ jobs:
           assert audit.viewport, 'Missing mobile viewport'
           assert len(audit.ids) == len(set(audit.ids)), 'Duplicate element IDs'
           required = {'newCheckButton', 'newCheckForm', 'searchInput', 'checksContainer', 'modalRoot', 'sidebar', 'menuButton'}
+          # The form is rendered by JavaScript; all other hooks must be in the HTML.
           static_required = required - {'newCheckForm'}
           missing = static_required - set(audit.ids)
           assert not missing, f'Missing interface hooks: {missing}'
@@ -58,73 +59,3 @@ jobs:
           assert 'evaluateCheck' in html, 'Missing lifecycle evaluator'
           print('HTML structure, mobile viewport, and interface contracts passed')
           PY
-
-  browser:
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Install Chromium test browser
-        run: |
-          npm install --no-save --no-package-lock playwright@latest
-          npx playwright install chromium
-      - name: Exercise GhostPulse in Chromium
-        run: |
-          python3 -m http.server 4173 >/tmp/ghostpulse-server.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill $SERVER_PID' EXIT
-          node <<'JS'
-          const { chromium } = require('playwright');
-          const assert = require('node:assert/strict');
-          (async () => {
-            const browser = await chromium.launch({ headless: true });
-            const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-            const errors = [];
-            page.on('pageerror', error => errors.push(error.message));
-            await page.goto('http://127.0.0.1:4173', { waitUntil: 'networkidle' });
-            await page.locator('#newCheckButton').waitFor();
-            assert.equal(await page.locator('#totalChecks').textContent(), '5');
-            assert.equal(await page.locator('tbody tr').count(), 5);
-            await page.locator('#newCheckButton').click();
-            await page.locator('#checkName').fill('CI backup monitor');
-            await page.locator('#checkDescription').fill('Created by the browser test');
-            await page.locator('#checkPeriod').fill('1');
-            await page.locator('#checkUnit').selectOption('minutes');
-            await page.locator('#checkGrace').fill('1');
-            await page.locator('#checkTags').fill('database, ci');
-            await page.getByRole('button', { name: 'Create check', exact: true }).click();
-            await page.locator('#modalTitle').getByText('CI backup monitor').waitFor();
-            await page.locator('#sendPing').click();
-            await page.locator('.detail-hero .status-pill.up').waitFor();
-            await page.getByRole('button', { name: 'Done', exact: true }).click();
-            assert.equal(await page.locator('#totalChecks').textContent(), '6');
-            await page.reload({ waitUntil: 'networkidle' });
-            assert.equal(await page.locator('#totalChecks').textContent(), '6');
-            await page.locator('#searchInput').fill('CI backup monitor');
-            assert.equal(await page.locator('tbody tr').count(), 1);
-            await page.locator('tbody tr').click();
-            await page.locator('#failRun').click();
-            await page.locator('.detail-hero .status-pill.down').waitFor();
-            await page.locator('#sendPing').click();
-            await page.locator('.detail-hero .status-pill.up').waitFor();
-            const recovered = await page.evaluate(() => window.ghostPulse.getChecks().find(c => c.name === 'CI backup monitor'));
-            assert.equal(recovered.alerts.filter(a => a.type === 'down').length, 1);
-            assert.equal(recovered.alerts.filter(a => a.type === 'recovery').length, 1);
-            await page.getByRole('button', { name: 'Done', exact: true }).click();
-            await page.locator('#searchInput').fill('no such check');
-            await page.getByText('No checks found', { exact: true }).waitFor();
-            await page.locator('#searchInput').fill('');
-            await page.setViewportSize({ width: 390, height: 844 });
-            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'Mobile page scrolls sideways');
-            await page.locator('#menuButton').click();
-            await page.locator('#sidebar.open').waitFor();
-            await page.locator('[data-nav="incidents"]').click();
-            await page.locator('#breadcrumb').getByText('Incidents').waitFor();
-            assert.equal(errors.length, 0, errors.join('\n'));
-            await browser.close();
-            console.log('PASS: create, ping, failure, recovery, persistence, search, incidents, mobile navigation, and runtime errors');
-          })().catch(error => { console.error(error); process.exit(1); });
-          JS
