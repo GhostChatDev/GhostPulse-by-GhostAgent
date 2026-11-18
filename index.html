@@ -215,7 +215,7 @@ function openModal(content, wide = false) {
   dialog.addEventListener('keydown', event => {
     if (event.key !== 'Tab') return;
     const items = [...dialog.querySelectorAll('button:not([disabled]),input,select,textarea,a[href],[tabindex="0"]')];
-    const first = items[0], last = items.at(-1);
+    const first = items.at(0), last = items.at(-1);
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
   });
@@ -224,10 +224,10 @@ function openModal(content, wide = false) {
 function closeModal() {
   if (!$('[role="dialog"]')) return;
   $('#modalRoot').replaceChildren();
-  modalPreviousFocus?.focus();
-  modalPreviousFocus = null;
   document.body.style.overflow = '';
   modalCheckId = null;
+  modalPreviousFocus?.focus();
+  modalPreviousFocus = null;
 }
 function modalHeader(title, subtitle) {
   return `<div class="modal-head"><div><h2 id="modalTitle">${esc(title)}</h2><p>${esc(subtitle)}</p></div><button class="close" data-close aria-label="Close dialog">×</button></div>`;
@@ -258,15 +258,10 @@ function openDetails(id) {
   $('#copyPing').addEventListener('click', () => copyText(`curl -fsS --retry 3 ${pingUrl(check)}`));
 }
 function refreshDetails(id) { save(); render(); openDetails(id); }
-function preserveExplicitFailure(id) {
-  const check = state.checks.find(c => c.id === id);
-  if (!check || check.status !== 'down' || check.events[0]?.type !== 'failure') return;
-  check.explicitFailure = true;
-}
 function sendSuccess(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
   const t = now(), wasDown = check.status === 'down';
-  check.lastPing = t; check.nextDue = t + check.period * units[check.unit]; check.startedAt = null; check.status = 'up'; check.pingCount++;
+  check.lastPing = t; check.nextDue = t + check.period * units[check.unit]; check.startedAt = null; check.explicitFailure = false; check.status = 'up'; check.pingCount++;
   record(check,wasDown ? 'recovered' : 'success',wasDown ? 'Check recovered after a success ping' : 'Success ping received');
   if (wasDown) check.alerts.unshift({type:'recovery',time:t});
   refreshDetails(id); toast(wasDown ? 'Check recovered — one recovery event recorded.' : 'Success ping received.');
@@ -274,12 +269,13 @@ function sendSuccess(id) {
 function startRun(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
   if (check.status === 'paused' && !check.lastPing) { check.status = 'up'; check.lastPing = now(); check.nextDue = now() + check.period * units[check.unit]; }
+  check.explicitFailure = false;
   check.startedAt = now(); record(check,'started','Job reported a new run'); refreshDetails(id); toast('Run started. Send a test ping when it finishes.');
 }
 function failRun(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
   if (check.status !== 'down') { check.alerts.unshift({type:'down',time:now()}); record(check,'down','Explicit failure reported'); }
-  check.status = 'down'; check.startedAt = null; record(check,'failure','Job exited with a failure'); refreshDetails(id); toast('Failure recorded and one incident opened.');
+  check.status = 'down'; check.explicitFailure = true; check.startedAt = null; record(check,'failure','Job exited with a failure'); refreshDetails(id); toast('Failure recorded and one incident opened.');
 }
 function togglePause(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
