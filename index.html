@@ -131,7 +131,7 @@ function record(check, type, message) {
   check.events = check.events.slice(0,100);
 }
 function evaluateCheck(check, notify = true) {
-  if (check.status === 'paused' || !check.lastPing) return;
+  if (check.status === 'paused' || !check.lastPing || check.explicitFailure) return;
   const t = now();
   const graceEnd = check.nextDue + check.grace * 60000;
   let next = check.status;
@@ -258,6 +258,11 @@ function openDetails(id) {
   $('#copyPing').addEventListener('click', () => copyText(`curl -fsS --retry 3 ${pingUrl(check)}`));
 }
 function refreshDetails(id) { save(); render(); openDetails(id); }
+function preserveExplicitFailure(id) {
+  const check = state.checks.find(c => c.id === id);
+  if (!check || check.status !== 'down' || check.events[0]?.type !== 'failure') return;
+  check.explicitFailure = true;
+}
 function sendSuccess(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
   const t = now(), wasDown = check.status === 'down';
