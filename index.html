@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#142a23">
+  <meta name="description" content="GhostPulse — quiet, reliable cron and heartbeat monitoring.">
+  <title>GhostPulse — Heartbeat monitoring</title>
+  <style>
+    :root{--ink:#18221e;--muted:#78817c;--line:#e8ece9;--paper:#f7f9f7;--white:#fff;--green:#286a4c;--lime:#c7f59a;--red:#b94b45;--amber:#a66c17;--sidebar:#142a23;--shadow:0 8px 30px #1c372b0a}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}button,input,select,textarea{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #81b897;outline-offset:2px}button{color:inherit}a{color:inherit;text-decoration:none}.hidden{display:none!important}
+    .sidebar{position:fixed;inset:0 auto 0 0;width:238px;background:var(--sidebar);color:#d7e1db;padding:26px 18px 18px;display:flex;flex-direction:column;z-index:20}.brand{display:flex;align-items:center;gap:10px;color:white;font-size:21px;font-weight:750;letter-spacing:-.6px;padding:0 10px}.brand-mark{width:30px;height:30px;border-radius:9px;background:var(--lime);display:grid;place-items:center;color:var(--sidebar)}.brand-mark svg{width:20px}.workspace{margin:29px 0 24px;border:1px solid #ffffff16;border-radius:10px;padding:11px 12px;display:flex;align-items:center;gap:10px;background:#ffffff06}.workspace-icon{width:29px;height:29px;border-radius:7px;background:#345044;display:grid;place-items:center;color:var(--lime);font-weight:700}.workspace-text{flex:1;min-width:0}.workspace-text strong{display:block;color:#f4f7f5;font-size:12px}.workspace-text small{color:#8fa59a;font-size:11px}.workspace svg{width:14px;color:#8fa59a}.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:#789086;padding:0 12px;margin:0 0 8px}.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#9fb1a8;display:flex;align-items:center;gap:11px;text-align:left;padding:11px 12px;border-radius:8px;font-size:13px}.nav button:hover{background:#ffffff08;color:#fff}.nav button.active{background:#2b453b;color:#fff}.nav button.active svg{color:var(--lime)}.nav svg{width:18px;height:18px}.nav .count{margin-left:auto;background:#543d32;color:#f4bb98;padding:2px 7px;border-radius:20px;font-size:10px}.sidebar-bottom{margin-top:auto}.mini-status{margin:20px 8px;padding:13px 0;border-top:1px solid #ffffff12}.mini-status div{display:flex;align-items:center;gap:8px;font-size:12px;color:#c7d3cc}.mini-status small{display:block;color:#7f988b;margin:6px 0 0 16px;font-size:11px}.pulse-dot{width:7px;height:7px;border-radius:50%;background:#91d981;box-shadow:0 0 0 4px #91d98112;display:inline-block;flex:none}.user{display:flex;align-items:center;gap:10px;padding:10px 8px}.avatar{width:33px;height:33px;border-radius:50%;background:#dbe8c8;color:#284630;display:grid;place-items:center;font-size:11px;font-weight:700}.user strong{display:block;color:#e5ede8;font-size:12px}.user small{color:#7f988b;font-size:11px}.user svg{margin-left:auto;width:15px}
+    .main{margin-left:238px;min-height:100vh}.topbar{height:66px;padding:0 38px;border-bottom:1px solid var(--line);background:#ffffffa8;display:flex;align-items:center;justify-content:space-between}.breadcrumb{color:#89918c;font-size:12px}.breadcrumb strong{color:#4e5b54;font-weight:500}.top-actions{display:flex;align-items:center;gap:20px}.icon-button{width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;display:grid;place-items:center;position:relative}.icon-button svg{width:17px}.notification-dot{position:absolute;width:6px;height:6px;border-radius:50%;background:#d66a58;right:7px;top:6px;border:1px solid white}.help{border:0;background:transparent;color:#7d8881;font-size:12px}.mobile-menu,.mobile-brand{display:none}.content{max-width:1440px;margin:auto;padding:35px 38px 50px}.page-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:29px;gap:20px}.eyebrow{font-size:11px;color:var(--green);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin:0 0 8px}.page-heading h1{font-size:28px;letter-spacing:-1px;margin:0 0 7px;font-weight:700}.page-heading p{margin:0;color:var(--muted);font-size:13px}.primary{background:var(--sidebar);color:#fff;border:1px solid var(--sidebar);border-radius:9px;padding:11px 16px;font-weight:600;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 4px #142a2310}.primary:hover{background:#23483b}.primary svg{width:16px;height:16px}.secondary{background:white;border:1px solid #dfe5e0;border-radius:8px;padding:9px 13px;font-size:12px;font-weight:550;display:inline-flex;align-items:center;gap:7px}.secondary:hover{background:#f4f7f4}.secondary svg{width:15px;height:15px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:18px}.stat{background:white;border:1px solid var(--line);border-radius:12px;padding:20px 21px;box-shadow:var(--shadow)}.stat-top{display:flex;justify-content:space-between;align-items:center;color:#7d8781;font-size:12px}.stat-icon{width:29px;height:29px;border-radius:8px;background:#f1f5f1;display:grid;place-items:center;color:#577063}.stat-icon svg{width:15px;height:15px}.stat-value{font-size:28px;font-weight:680;letter-spacing:-1px;margin:12px 0 5px}.stat-foot{font-size:11px;color:#919994}.trend{color:#3c835e;font-weight:600}.trend.warn{color:var(--red)}
+    .insight{background:#eef5e9;border:1px solid #dce9d5;border-radius:12px;display:flex;align-items:center;gap:14px;padding:15px 18px;margin-bottom:18px}.spark{width:35px;height:35px;background:#dfeede;border-radius:9px;display:grid;place-items:center;color:#457754;flex:none}.spark svg{width:18px}.insight-text{flex:1}.insight-text strong{display:block;font-size:12px;margin-bottom:3px}.insight-text span{font-size:11px;color:#75836f}.text-button{border:0;background:transparent;color:#416e4d;font-weight:600;font-size:11px;display:inline-flex;align-items:center;gap:5px;padding:7px}.text-button svg{width:13px}.panel{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}.panel-head{display:flex;justify-content:space-between;align-items:center;padding:18px 21px;gap:14px}.panel-title{font-size:14px;font-weight:650;margin:0}.tabs{display:flex;gap:5px;background:#f3f6f3;border-radius:8px;padding:3px}.tab{border:0;background:transparent;padding:6px 11px;font-size:11px;border-radius:6px;color:#818b85}.tab.active{background:#fff;color:#2c4136;font-weight:650;box-shadow:0 1px 4px #1f392510}.filters{display:flex;gap:10px;padding:0 21px 17px;border-bottom:1px solid var(--line)}.search{position:relative;flex:1;max-width:310px}.search svg{position:absolute;left:11px;top:10px;width:15px;color:#919b95}.search input{width:100%;border:1px solid #e2e7e3;border-radius:8px;background:#fafcfa;padding:9px 12px 9px 34px;font-size:11px;color:var(--ink)}.filter-select{border:1px solid #e2e7e3;background:#fff;color:#68756d;border-radius:8px;padding:8px 27px 8px 10px;font-size:11px}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;text-align:left}th{padding:12px 19px;color:#99a19c;font-size:9px;text-transform:uppercase;letter-spacing:.8px;font-weight:650;background:#fcfdfc;border-bottom:1px solid var(--line);white-space:nowrap}td{padding:17px 19px;border-bottom:1px solid #edf0ed;font-size:11px;vertical-align:middle;white-space:nowrap}tbody tr{cursor:pointer;transition:background .15s}tbody tr:hover{background:#fafcf9}tbody tr:last-child td{border-bottom:0}.check-name{display:flex;align-items:center;gap:11px;min-width:190px}.status-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none}.status-icon svg{width:15px;height:15px}.status-icon.up{background:#e9f5eb;color:#388158}.status-icon.down{background:#fcecea;color:#c05149}.status-icon.grace{background:#fff4dc;color:#a37423}.status-icon.paused{background:#f0f1f0;color:#858d87}.check-name strong{display:block;font-size:12px;font-weight:600;margin-bottom:4px}.check-name small{font-size:10px;color:#929a95}.status-pill{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:4px 8px;font-size:9px;font-weight:650}.status-pill i{width:5px;height:5px;border-radius:50%;background:currentColor}.status-pill.up{color:#34794e;background:#ecf6ed}.status-pill.down{color:#b0443f;background:#fff0ed}.status-pill.grace{color:#97691c;background:#fff6e3}.status-pill.paused{color:#7b8580;background:#f0f2f0}.schedule{color:#536159}.schedule small,.muted-small{display:block;color:#9aa29d;font-size:9px;margin-top:4px}.last-ping{color:#6e7a73}.empty{padding:60px 25px;text-align:center}.empty svg{width:35px;color:#9caaa1;margin-bottom:12px}.empty h3{font-size:15px;margin:0 0 8px}.empty p{color:var(--muted);font-size:12px;margin:0 auto 18px;max-width:330px;line-height:1.6}.panel-foot{padding:12px 19px;border-top:1px solid var(--line);display:flex;justify-content:space-between;color:#939d96;font-size:10px}.view-link{color:#526f5c}.footer-note{text-align:center;color:#9aa39d;font-size:10px;margin:22px 0 0}.footer-note span{color:#64816d}
+    .overlay{position:fixed;inset:0;background:#10251db3;backdrop-filter:blur(3px);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}.modal{background:#fff;border-radius:15px;width:480px;max-height:92vh;overflow:auto;box-shadow:0 25px 80px #0d241b40}.modal.wide{width:570px}.modal-head{padding:24px 25px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start}.modal-head h2{margin:0 0 6px;font-size:19px;letter-spacing:-.4px}.modal-head p{margin:0;font-size:11px;color:var(--muted)}.close{border:0;background:#f2f5f2;border-radius:7px;width:29px;height:29px;font-size:20px;color:#758078;line-height:1}.modal-body{padding:22px 25px}.field{margin-bottom:17px}.field label{display:block;font-size:11px;font-weight:600;margin-bottom:7px}.field input,.field select,.field textarea{width:100%;border:1px solid #dce3dd;border-radius:8px;padding:10px 11px;font-size:12px;background:#fcfdfc;color:var(--ink)}.field textarea{resize:vertical;min-height:65px}.field small{display:block;color:#98a099;font-size:10px;margin-top:6px;line-height:1.5}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:13px}.modal-actions{display:flex;justify-content:flex-end;gap:9px;padding:16px 25px;border-top:1px solid var(--line);background:#fbfcfb}.toast{position:fixed;right:25px;bottom:25px;background:#183a2d;color:#fff;padding:13px 17px;border-radius:9px;z-index:90;font-size:12px;box-shadow:0 8px 25px #17372833;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 40px)}.toast svg{width:16px;color:var(--lime)}.detail-hero{display:flex;align-items:center;gap:13px;margin-bottom:21px}.detail-hero .status-icon{width:43px;height:43px}.detail-hero h3{margin:0 0 6px;font-size:17px}.detail-actions{display:flex;gap:7px;flex-wrap:wrap;margin:17px 0}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:17px 0}.detail-card{padding:13px;background:#f7f9f7;border-radius:8px}.detail-card small{display:block;color:var(--muted);font-size:10px;margin-bottom:5px}.detail-card strong{font-size:12px;font-weight:600}.code-box{background:#152a23;color:#d1e9d9;padding:13px;border-radius:8px;font:10px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere;position:relative}.code-box button{position:absolute;right:7px;top:7px;background:#365045;color:#fff;border:0;border-radius:5px;padding:4px 7px;font:9px Inter,sans-serif}.timeline{margin:13px 0 0;padding:0;list-style:none}.timeline li{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:11px}.timeline li:last-child{border:0}.timeline time{margin-left:auto;color:var(--muted);font-size:10px}.danger{color:var(--red)}.mobile-cards{display:none}.notice{padding:12px 14px;background:#fff7e8;color:#80612f;border-radius:8px;font-size:11px;line-height:1.6;margin-bottom:17px}.settings-list{display:grid;gap:10px}.setting{border:1px solid var(--line);border-radius:9px;padding:14px;display:flex;align-items:center;gap:12px}.setting>div{flex:1}.setting strong{font-size:12px}.setting p{font-size:10px;color:var(--muted);margin:4px 0 0;line-height:1.5}
+    @media(min-width:1500px){.content{padding-top:45px}.stat{padding:24px}td{padding-top:20px;padding-bottom:20px}}
+    @media(max-width:1000px){.sidebar{width:205px}.main{margin-left:205px}.content,.topbar{padding-left:24px;padding-right:24px}.stats{gap:10px}.stat{padding:16px}.stat-value{font-size:24px}.stat-foot{font-size:10px}.insight{align-items:flex-start}.desktop-only{display:none}}
+    @media(max-width:760px){.sidebar{transform:translateX(-100%);transition:transform .2s;width:238px}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.topbar{height:59px;padding:0 17px}.mobile-menu{display:grid}.mobile-brand{display:flex;font-weight:700;align-items:center;gap:7px;font-size:16px}.mobile-brand .brand-mark{width:25px;height:25px}.breadcrumb,.help{display:none}.content{padding:25px 17px 40px}.page-heading{align-items:flex-start;margin-bottom:24px}.page-heading h1{font-size:24px}.page-heading p{font-size:11px}.page-heading .primary{padding:10px 12px}.page-heading .primary span{display:none}.stats{grid-template-columns:1fr 1fr}.stat{padding:15px}.stat-value{margin-top:9px}.insight{padding:13px}.insight .text-button{display:none}.panel-head{padding:15px;flex-wrap:wrap}.filters{padding:0 15px 14px}.search{max-width:none}.desktop-table{display:none}.mobile-cards{display:block}.mobile-check{padding:16px 15px;border-bottom:1px solid var(--line);cursor:pointer}.mobile-check:last-child{border:0}.mobile-check-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.mobile-check .check-name{min-width:0}.mobile-meta{display:flex;justify-content:space-between;color:#89948d;font-size:10px}.mobile-overlay{position:fixed;inset:0;background:#0005;z-index:15}.form-row{grid-template-columns:1fr;gap:0}.modal{max-height:95vh}.modal-head,.modal-body{padding-left:19px;padding-right:19px}.modal-actions{padding:14px 19px}.overlay{padding:12px}.toast{right:15px;bottom:15px}.footer-note{line-height:1.6}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2.3-7 4.2 14 2.3-7H21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="14" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="14" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 4.1 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.1a2 2 0 0 0-3.4 0Z M12 9v4m0 4h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7ZM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+<div id="mobileOverlay" class="mobile-overlay hidden"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="brand"><span class="brand-mark"><svg><use href="#i-pulse"/></svg></span>GhostPulse</div>
+  <div class="workspace"><span class="workspace-icon">G</span><div class="workspace-text"><strong>Ghost HQ</strong><small>Personal workspace</small></div><svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4" fill="none" stroke="currentColor" stroke-width="2"/></svg></div>
+  <p class="nav-label">Workspace</p>
+  <nav class="nav" aria-label="Main navigation">
+    <button class="active" data-nav="overview"><svg><use href="#i-grid"/></svg>Overview</button>
+    <button data-nav="checks"><svg><use href="#i-pulse"/></svg>All checks</button>
+    <button data-nav="incidents"><svg><use href="#i-alert"/></svg>Incidents<span class="count" id="incidentCount">0</span></button>
+  </nav>
+  <p class="nav-label" style="margin-top:26px">Manage</p>
+  <nav class="nav"><button data-nav="integrations"><svg><use href="#i-bell"/></svg>Integrations</button><button data-nav="settings"><svg><use href="#i-settings"/></svg>Settings</button></nav>
+  <div class="sidebar-bottom"><div class="mini-status"><div><span class="pulse-dot"></span>All systems operational</div><small>Monitoring every 30 seconds</small></div><div class="user"><span class="avatar">GC</span><div><strong>Ghost Chat Dev</strong><small>Local workspace</small></div></div></div>
+</aside>
+<main class="main">
+  <header class="topbar"><div style="display:flex;align-items:center;gap:12px"><button class="icon-button mobile-menu" id="menuButton" aria-label="Open navigation"><svg><use href="#i-menu"/></svg></button><div class="mobile-brand"><span class="brand-mark"><svg><use href="#i-pulse"/></svg></span>GhostPulse</div><div class="breadcrumb">Ghost HQ <span style="margin:0 8px">/</span> <strong id="breadcrumb">Overview</strong></div></div><div class="top-actions"><button class="help" id="helpButton">Documentation</button><button class="icon-button" id="notificationButton" aria-label="View incidents"><svg><use href="#i-bell"/></svg><span class="notification-dot" id="notificationDot"></span></button></div></header>
+  <div class="content">
+    <section class="page-heading"><div><p class="eyebrow">Your command center</p><h1 id="pageTitle">Good to see you, Ghost.</h1><p id="pageSubtitle">Here’s what’s happening across your scheduled jobs.</p></div><button class="primary" id="newCheckButton"><svg><use href="#i-plus"/></svg><span>New check</span></button></section>
+    <section class="stats" aria-label="Monitoring summary">
+      <article class="stat"><div class="stat-top">Total checks<span class="stat-icon"><svg><use href="#i-pulse"/></svg></span></div><div class="stat-value" id="totalChecks">0</div><div class="stat-foot"><span class="trend" id="activeChecks">0 active</span> in your workspace</div></article>
+      <article class="stat"><div class="stat-top">Healthy checks<span class="stat-icon"><svg><use href="#i-check"/></svg></span></div><div class="stat-value" id="healthyChecks">0</div><div class="stat-foot"><span class="trend" id="healthyPercent">—</span> reporting on time</div></article>
+      <article class="stat"><div class="stat-top">Needs attention<span class="stat-icon" style="color:var(--red);background:#fff0ed"><svg><use href="#i-alert"/></svg></span></div><div class="stat-value" id="downChecks">0</div><div class="stat-foot"><span class="trend warn" id="attentionText">Everything looks good</span></div></article>
+      <article class="stat"><div class="stat-top">Pings received<span class="stat-icon"><svg><use href="#i-clock"/></svg></span></div><div class="stat-value" id="totalPings">0</div><div class="stat-foot">Across all your checks</div></article>
+    </section>
+    <section class="insight"><span class="spark"><svg><use href="#i-spark"/></svg></span><div class="insight-text"><strong id="insightTitle">Your jobs are in good hands.</strong><span id="insightText">GhostPulse is watching for silence, so you don’t have to.</span></div><button class="text-button" id="insightButton">View activity <svg><use href="#i-arrow"/></svg></button></section>
+    <section class="panel" aria-label="Heartbeat checks">
+      <div class="panel-head"><h2 class="panel-title" id="listTitle">Heartbeat checks</h2><div class="tabs" role="group" aria-label="Check status filter"><button class="tab active" data-tab="all">All</button><button class="tab" data-tab="up">Healthy</button><button class="tab" data-tab="down">Down</button><button class="tab" data-tab="paused">Paused</button></div></div>
+      <div class="filters"><label class="search"><svg><use href="#i-search"/></svg><input id="searchInput" type="search" placeholder="Search checks or tags…" aria-label="Search checks"></label><select class="filter-select" id="tagFilter" aria-label="Filter by tag"><option value="all">All tags</option></select></div>
+      <div id="checksContainer"></div>
+      <div class="panel-foot"><span id="resultCount">0 checks</span><span class="view-link">Updated <span id="updatedTime">just now</span></span></div>
+    </section>
+    <p class="footer-note"><span>●</span> GhostPulse is watching. Browser MVP — your checks are saved on this device.</p>
+  </div>
+</main>
+<div id="modalRoot"></div><div id="toastRoot" aria-live="polite"></div>
+<script>
+'use strict';
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => [...document.querySelectorAll(selector)];
+const icon = (name) => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
+const STORAGE_KEY = 'ghostpulse.checks.v1';
+const now = () => Date.now();
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${now().toString(36)}-${Math.random().toString(36).slice(2)}`);
+const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+const units = {minutes:60000,hours:3600000,days:86400000};
+let state = {checks:[], tab:'all', search:'', tag:'all', view:'overview', lastUpdate:now()};
+let modalCheckId = null;
+let clock = null;
+
+function seedChecks() {
+  const t = now();
+  return [
+    {id:uid(),name:'Nightly database backup',slug:'nightly-database-backup',description:'PostgreSQL backup to secure object storage.',tags:['database','production'],period:24,unit:'hours',grace:15,timezone:'UTC',lastPing:t-42*60000,nextDue:t+(24*60-42)*60000,status:'up',startedAt:null,pingCount:184,events:[{type:'success',time:t-42*60000,message:'Backup completed successfully'}],alerts:[],demo:true},
+    {id:uid(),name:'Customer data sync',slug:'customer-data-sync',description:'Synchronize customer records with the data warehouse.',tags:['sync','production'],period:30,unit:'minutes',grace:5,lastPing:t-41*60000,nextDue:t-11*60000,status:'down',startedAt:null,pingCount:962,events:[{type:'down',time:t-6*60000,message:'No success ping within period + grace'},{type:'success',time:t-41*60000,message:'Success ping received'}],alerts:[{type:'down',time:t-6*60000}],demo:true},
+    {id:uid(),name:'Weekly invoice digest',slug:'weekly-invoice-digest',description:'Generate and deliver the weekly account summary.',tags:['billing'],period:7,unit:'days',grace:60,lastPing:t-2*3600000,nextDue:t+(7*24-2)*3600000,status:'up',startedAt:null,pingCount:26,events:[{type:'success',time:t-2*3600000,message:'Invoice digest delivered'}],alerts:[],demo:true},
+    {id:uid(),name:'Search index refresh',slug:'search-index-refresh',description:'Refresh the product search index.',tags:['search','staging'],period:1,unit:'hours',grace:10,lastPing:t-58*60000,nextDue:t-(-2)*60000,status:'grace',startedAt:null,pingCount:318,events:[{type:'success',time:t-58*60000,message:'Success ping received'}],alerts:[],demo:true},
+    {id:uid(),name:'Legacy report export',slug:'legacy-report-export',description:'Paused while the export pipeline is migrated.',tags:['reports'],period:6,unit:'hours',grace:10,lastPing:t-3*3600000,nextDue:t+3*3600000,status:'paused',startedAt:null,pingCount:45,events:[{type:'paused',time:t-3600000,message:'Monitoring paused'}],alerts:[],demo:true}
+  ];
+}
+
+function load() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    state.checks = Array.isArray(saved) && saved.every(check => check && typeof check.id === 'string' && typeof check.name === 'string' && Array.isArray(check.events) && Array.isArray(check.alerts)) ? saved : seedChecks();
+  } catch (_) { state.checks = seedChecks(); }
+}
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.checks)); }
+  catch (_) { toast('Browser storage is full. Export your checks before clearing old activity.'); }
+  state.lastUpdate = now();
+}
+function formatDuration(ms) {
+  const abs = Math.abs(ms), mins = Math.round(abs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 48) return `${hours}h${mins % 60 ? ` ${mins % 60}m` : ''}`;
+  return `${Math.floor(hours / 24)}d`;
+}
+function relative(time) { return time ? `${formatDuration(now()-time)} ago` : 'Never'; }
+function scheduleText(check) { return `Every ${check.period} ${check.unit}${check.period === 1 ? check.unit.slice(0,-1) === check.unit ? '' : '' : ''}`; }
+function scheduleLabel(check) { const singular = {minutes:'minute',hours:'hour',days:'day'}; return `Every ${check.period} ${check.period === 1 ? singular[check.unit] : check.unit}`; }
+function statusLabel(status) { return ({up:'Healthy',down:'Down',grace:'Late',paused:'Paused'})[status] || status; }
+function statusIcon(status) { return ({up:'check',down:'alert',grace:'clock',paused:'pause'})[status] || 'clock'; }
+function pingUrl(check) { return `https://ping.ghostpulse.local/${check.id}`; }
+function eventLabel(event) {
+  return ({success:'Success ping',down:'Check went down',recovered:'Check recovered',failure:'Failure reported',started:'Run started',paused:'Monitoring paused',resumed:'Monitoring resumed',created:'Check created'})[event.type] || event.message;
+}
+function record(check, type, message) {
+  check.events.unshift({type,message,time:now()});
+  check.events = check.events.slice(0,100);
+}
+function evaluateCheck(check, notify = true) {
+  if (check.status === 'paused' || !check.lastPing) return;
+  const t = now();
+  const graceEnd = check.nextDue + check.grace * 60000;
+  let next = check.status;
+  if (check.startedAt && t >= check.startedAt + check.grace * 60000) next = 'down';
+  else if (t >= graceEnd) next = 'down';
+  else if (t >= check.nextDue) next = 'grace';
+  else if (check.status !== 'up') next = 'up';
+  if (next === check.status) return;
+  check.status = next;
+  if (next === 'down') {
+    const message = check.startedAt && t >= check.startedAt + check.grace * 60000 ? 'Run exceeded its grace period' : 'No success ping within period + grace';
+    record(check,'down',message);
+    if (notify) check.alerts.unshift({type:'down',time:t});
+  } else if (next === 'up') {
+    const wasDown = check.alerts[0]?.type === 'down';
+    record(check,'recovered','Check is reporting on time again');
+    if (notify && wasDown) check.alerts.unshift({type:'recovery',time:t});
+  }
+}
+function evaluateAll(notify = true) { state.checks.forEach(check => evaluateCheck(check,notify)); }
+function visibleChecks() {
+  return state.checks.filter(check => {
+    const statusMatch = state.tab === 'all' || check.status === state.tab || (state.tab === 'down' && check.status === 'grace');
+    const text = `${check.name} ${check.slug} ${check.tags.join(' ')}`.toLowerCase();
+    return statusMatch && text.includes(state.search.toLowerCase()) && (state.tag === 'all' || check.tags.includes(state.tag));
+  });
+}
+function checkRow(check) {
+  const next = check.status === 'paused' ? 'Monitoring off' : check.status === 'down' ? `Overdue by ${formatDuration(now()-(check.nextDue+check.grace*60000))}` : `Next due ${check.nextDue <= now() ? 'now' : `in ${formatDuration(check.nextDue-now())}`}`;
+  return `<tr data-check="${esc(check.id)}" tabindex="0" aria-label="Open ${esc(check.name)}"><td><div class="check-name"><span class="status-icon ${check.status}">${icon(statusIcon(check.status))}</span><div><strong>${esc(check.name)}</strong><small>${esc(check.tags.join(' · ') || 'Untagged')}</small></div></div></td><td><span class="status-pill ${check.status}"><i></i>${statusLabel(check.status)}</span>${check.startedAt ? '<small class="muted-small">Running now</small>' : ''}</td><td class="schedule">${esc(scheduleLabel(check))}<small>${check.grace} min grace</small></td><td class="last-ping">${relative(check.lastPing)}<small>${check.pingCount.toLocaleString()} total pings</small></td><td class="last-ping">${esc(next)}</td></tr>`;
+}
+function mobileCard(check) {
+  return `<article class="mobile-check" data-check="${esc(check.id)}" tabindex="0"><div class="mobile-check-top"><div class="check-name"><span class="status-icon ${check.status}">${icon(statusIcon(check.status))}</span><div><strong>${esc(check.name)}</strong><small>${esc(scheduleLabel(check))}</small></div></div><span class="status-pill ${check.status}"><i></i>${statusLabel(check.status)}</span></div><div class="mobile-meta"><span>Last ping ${relative(check.lastPing)}</span><span>${check.grace}m grace</span></div></article>`;
+}
+function renderChecks() {
+  const checks = visibleChecks();
+  $('#checksContainer').innerHTML = checks.length ? `<div class="table-wrap desktop-table"><table><thead><tr><th>Check</th><th>Status</th><th>Schedule</th><th>Last ping</th><th>Next expectation</th></tr></thead><tbody>${checks.map(checkRow).join('')}</tbody></table></div><div class="mobile-cards">${checks.map(mobileCard).join('')}</div>` : `<div class="empty">${icon('search')}<h3>No checks found</h3><p>${state.checks.length ? 'Try another search or status filter.' : 'Create your first heartbeat check and never wonder whether a scheduled job ran again.'}</p><button class="primary" data-action="new">${icon('plus')} New check</button></div>`;
+  $('#resultCount').textContent = `${checks.length} of ${state.checks.length} checks`;
+  $$('[data-check]').forEach(element => {
+    element.addEventListener('click', () => openDetails(element.dataset.check));
+    element.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDetails(element.dataset.check); } });
+  });
+}
+function render() {
+  evaluateAll(false);
+  const total = state.checks.length, healthy = state.checks.filter(c => c.status === 'up').length;
+  const down = state.checks.filter(c => c.status === 'down').length;
+  const late = state.checks.filter(c => c.status === 'grace').length;
+  $('#totalChecks').textContent = total;
+  $('#activeChecks').textContent = `${state.checks.filter(c => c.status !== 'paused').length} active`;
+  $('#healthyChecks').textContent = healthy;
+  $('#healthyPercent').textContent = total ? `${Math.round(healthy / total * 100)}%` : '—';
+  $('#downChecks').textContent = down;
+  $('#attentionText').textContent = down ? `${down + late} check${down + late === 1 ? '' : 's'} need attention` : late ? `${late} check is running late` : 'Everything looks good';
+  $('#totalPings').textContent = state.checks.reduce((sum,c) => sum + c.pingCount, 0).toLocaleString();
+  $('#incidentCount').textContent = down;
+  $('#incidentCount').classList.toggle('hidden', down === 0);
+  $('#notificationDot').classList.toggle('hidden', down === 0);
+  $('#insightTitle').textContent = down ? `${down} job${down === 1 ? '' : 's'} stopped reporting.` : late ? 'A job is inside its grace period.' : 'Your jobs are in good hands.';
+  $('#insightText').textContent = down ? 'Review the incident and recent activity to get things moving again.' : late ? 'No alert yet — GhostPulse will mark it down if the grace period expires.' : 'GhostPulse is watching for silence, so you don’t have to.';
+  const tags = [...new Set(state.checks.flatMap(c => c.tags))].sort();
+  $('#tagFilter').innerHTML = '<option value="all">All tags</option>' + tags.map(tag => `<option value="${esc(tag)}">${esc(tag)}</option>`).join('');
+  $('#tagFilter').value = tags.includes(state.tag) ? state.tag : 'all';
+  $('#updatedTime').textContent = relative(state.lastUpdate);
+  renderChecks();
+}
+function toast(message) {
+  const element = document.createElement('div');
+  element.className = 'toast';
+  element.innerHTML = `${icon('check')}<span>${esc(message)}</span>`;
+  $('#toastRoot').replaceChildren(element);
+  setTimeout(() => element.remove(), 3500);
+}
+function openModal(content, wide = false) {
+  $('#modalRoot').innerHTML = `<div class="overlay" id="overlay"><section class="modal ${wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="modalTitle">${content}</section></div>`;
+  document.body.style.overflow = 'hidden';
+  $$('[data-close]').forEach(button => button.addEventListener('click', closeModal));
+  $('#overlay').addEventListener('click', event => { if (event.target.id === 'overlay') closeModal(); });
+  setTimeout(() => $('#modalRoot input, #modalRoot button')?.focus(), 0);
+}
+function closeModal() {
+  $('#modalRoot').replaceChildren();
+  document.body.style.overflow = '';
+  modalCheckId = null;
+}
+function modalHeader(title, subtitle) {
+  return `<div class="modal-head"><div><h2 id="modalTitle">${esc(title)}</h2><p>${esc(subtitle)}</p></div><button class="close" data-close aria-label="Close dialog">×</button></div>`;
+}
+function openNewCheck() {
+  openModal(`${modalHeader('Create a heartbeat check','Tell us when to expect your job. We’ll watch for the silence.')}<form id="newCheckForm"><div class="modal-body"><div class="field"><label for="checkName">Check name</label><input id="checkName" name="name" required maxlength="100" placeholder="e.g. Nightly database backup" autocomplete="off"></div><div class="field"><label for="checkDescription">Description <span style="font-weight:400;color:var(--muted)">(optional)</span></label><textarea id="checkDescription" name="description" maxlength="10000" placeholder="What does this job do?"></textarea></div><div class="form-row"><div class="field"><label for="checkPeriod">Expected every</label><input id="checkPeriod" name="period" type="number" required min="1" max="525600" value="1"></div><div class="field"><label for="checkUnit">Time unit</label><select id="checkUnit" name="unit"><option value="minutes">Minutes</option><option value="hours" selected>Hours</option><option value="days">Days</option></select></div></div><div class="form-row"><div class="field"><label for="checkGrace">Grace period (minutes)</label><input id="checkGrace" name="grace" type="number" required min="1" max="525600" value="10"><small>Extra time before a missed ping becomes an incident.</small></div><div class="field"><label for="checkTags">Tags</label><input id="checkTags" name="tags" maxlength="200" placeholder="database, production"><small>Separate tags with commas.</small></div></div><div class="notice">This browser MVP simulates pings on your device. The hosted endpoint and real notifications are part of the server release.</div></div><div class="modal-actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">${icon('plus')} Create check</button></div></form>`);
+  $('#newCheckForm').addEventListener('submit', event => {
+    event.preventDefault();
+    const data = new FormData(event.target), t = now();
+    const name = String(data.get('name')).trim();
+    if (!name) return;
+    const check = {id:uid(),name,slug:name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,100) || `check-${t}`,description:String(data.get('description')).trim(),tags:String(data.get('tags')).split(',').map(s=>s.trim().toLowerCase()).filter(Boolean).slice(0,10),period:Number(data.get('period')),unit:String(data.get('unit')),grace:Number(data.get('grace')),timezone:'UTC',lastPing:null,nextDue:t+Number(data.get('period'))*units[String(data.get('unit'))],status:'paused',startedAt:null,pingCount:0,events:[],alerts:[],demo:false};
+    record(check,'created','Check created — send your first ping to activate it');
+    state.checks.unshift(check); save(); closeModal(); state.tab = 'all'; syncTabs(); render(); toast('Check created. Send a test ping to activate it.'); openDetails(check.id);
+  });
+}
+function openDetails(id) {
+  const check = state.checks.find(c => c.id === id);
+  if (!check) return;
+  modalCheckId = id;
+  const running = check.startedAt ? `<span class="status-pill grace">Running for ${formatDuration(now()-check.startedAt)}</span>` : '';
+  openModal(`${modalHeader(check.name,check.description || 'Heartbeat monitor')}<div class="modal-body"><div class="detail-hero"><span class="status-icon ${check.status}">${icon(statusIcon(check.status))}</span><div><span class="status-pill ${check.status}"><i></i>${statusLabel(check.status)}</span><h3 style="margin-top:8px">${relative(check.lastPing)}</h3></div>${running}</div><div class="detail-grid"><div class="detail-card"><small>Expected schedule</small><strong>${esc(scheduleLabel(check))}</strong></div><div class="detail-card"><small>Grace period</small><strong>${check.grace} minutes</strong></div><div class="detail-card"><small>Total pings</small><strong>${check.pingCount.toLocaleString()}</strong></div><div class="detail-card"><small>Next expected</small><strong>${check.lastPing ? new Date(check.nextDue).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'After first ping'}</strong></div></div><div class="field"><label>Ping endpoint (preview)</label><div class="code-box" id="pingCode">curl -fsS --retry 3 ${esc(pingUrl(check))}<button id="copyPing">Copy</button></div><small>Preview URL only — it does not receive network requests in this browser MVP.</small></div><div class="detail-actions"><button class="primary" id="sendPing">${icon('pulse')} Send test ping</button><button class="secondary" id="startRun">${icon('play')} ${check.startedAt ? 'Restart run' : 'Start run'}</button><button class="secondary danger" id="failRun">${icon('alert')} Report failure</button><button class="secondary" id="togglePause">${icon(check.status === 'paused' ? 'play' : 'pause')} ${check.status === 'paused' ? 'Resume' : 'Pause'}</button></div><h3 style="font-size:12px;margin:22px 0 5px">Recent activity</h3><ul class="timeline">${check.events.slice(0,6).map(event => `<li><span class="pulse-dot" style="background:${event.type === 'down' || event.type === 'failure' ? '#cf6558' : '#75ad7f'}"></span><span>${esc(eventLabel(event))}</span><time>${relative(event.time)}</time></li>`).join('') || '<li>No activity yet</li>'}</ul></div><div class="modal-actions" style="justify-content:space-between"><button class="text-button danger" id="deleteCheck">${icon('trash')} Delete</button><button class="secondary" data-close>Done</button></div>`, true);
+  $('#sendPing').addEventListener('click', () => sendSuccess(check.id));
+  $('#startRun').addEventListener('click', () => startRun(check.id));
+  $('#failRun').addEventListener('click', () => failRun(check.id));
+  $('#togglePause').addEventListener('click', () => togglePause(check.id));
+  $('#deleteCheck').addEventListener('click', () => deleteCheck(check.id));
+  $('#copyPing').addEventListener('click', () => copyText(`curl -fsS --retry 3 ${pingUrl(check)}`));
+}
+function refreshDetails(id) { save(); render(); openDetails(id); }
+function sendSuccess(id) {
+  const check = state.checks.find(c => c.id === id); if (!check) return;
+  const t = now(), wasDown = check.status === 'down';
+  check.lastPing = t; check.nextDue = t + check.period * units[check.unit]; check.startedAt = null; check.status = 'up'; check.pingCount++;
+  record(check,wasDown ? 'recovered' : 'success',wasDown ? 'Check recovered after a success ping' : 'Success ping received');
+  if (wasDown) check.alerts.unshift({type:'recovery',time:t});
+  refreshDetails(id); toast(wasDown ? 'Check recovered — one recovery event recorded.' : 'Success ping received.');
+}
+function startRun(id) {
+  const check = state.checks.find(c => c.id === id); if (!check) return;
+  if (check.status === 'paused' && !check.lastPing) { check.status = 'up'; check.lastPing = now(); check.nextDue = now() + check.period * units[check.unit]; }
+  check.startedAt = now(); record(check,'started','Job reported a new run'); refreshDetails(id); toast('Run started. Send a test ping when it finishes.');
+}
+function failRun(id) {
+  const check = state.checks.find(c => c.id === id); if (!check) return;
+  if (check.status !== 'down') { check.alerts.unshift({type:'down',time:now()}); record(check,'down','Explicit failure reported'); }
+  check.status = 'down'; check.startedAt = null; record(check,'failure','Job exited with a failure'); refreshDetails(id); toast('Failure recorded and one incident opened.');
+}
+function togglePause(id) {
+  const check = state.checks.find(c => c.id === id); if (!check) return;
+  if (check.status === 'paused') { check.status = check.lastPing ? 'up' : 'paused'; record(check,'resumed','Monitoring resumed'); evaluateCheck(check); toast(check.lastPing ? 'Monitoring resumed.' : 'Waiting for the first ping.'); }
+  else { check.status = 'paused'; check.startedAt = null; record(check,'paused','Monitoring paused'); toast('Monitoring paused. No alerts will be sent.'); }
+  refreshDetails(id);
+}
+function deleteCheck(id) {
+  const check = state.checks.find(c => c.id === id); if (!check || !confirm(`Delete “${check.name}” and its local activity?`)) return;
+  state.checks = state.checks.filter(c => c.id !== id); save(); closeModal(); render(); toast('Check deleted.');
+}
+async function copyText(text) {
+  try {
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+    else { const area = document.createElement('textarea'); area.value = text; document.body.append(area); area.select(); document.execCommand('copy'); area.remove(); }
+    toast('Ping command copied.');
+  } catch (_) { toast('Copy was blocked. Select the command and copy it manually.'); }
+}
+function syncTabs() { $$('[data-tab]').forEach(button => button.classList.toggle('active',button.dataset.tab === state.tab)); }
+function setView(view) {
+  state.view = view;
+  const titles = {overview:['Good to see you, Ghost.','Here’s what’s happening across your scheduled jobs.','Overview','Heartbeat checks'],checks:['Every job. One calm view.','Search, filter, and inspect all your heartbeat checks.','All checks','All heartbeat checks'],incidents:['Let’s get things back on track.','Checks that are late or need your attention.','Incidents','Checks needing attention']};
+  const copy = titles[view] || titles.overview;
+  $('#pageTitle').textContent = copy[0]; $('#pageSubtitle').textContent = copy[1]; $('#breadcrumb').textContent = copy[2]; $('#listTitle').textContent = copy[3];
+  if (view === 'incidents') state.tab = 'down'; else if (view === 'overview' || view === 'checks') state.tab = 'all';
+  syncTabs(); render(); closeMobile();
+  $$('[data-nav]').forEach(button => button.classList.toggle('active',button.dataset.nav === view));
+}
+function openIntegrations() {
+  openModal(`${modalHeader('Alert integrations','Choose where incidents should go.')}<div class="modal-body"><div class="notice">Delivery connectors are previewed here. This MVP records down and recovery events locally; it does not send real messages.</div><div class="settings-list"><div class="setting">${icon('bell')}<div><strong>Email alerts</strong><p>One message when a check goes down, and one when it recovers.</p></div><span class="status-pill grace">Server next</span></div><div class="setting">${icon('pulse')}<div><strong>Slack & webhooks</strong><p>Send signed incident payloads to your existing operations tools.</p></div><span class="status-pill grace">Server next</span></div></div></div><div class="modal-actions"><button class="primary" data-close>Got it</button></div>`);
+}
+function openSettings() {
+  openModal(`${modalHeader('Workspace settings','Your local data, under your control.')}<div class="modal-body"><div class="settings-list"><div class="setting"><div><strong>Export checks</strong><p>Download all checks, schedules, and activity as JSON.</p></div><button class="secondary" id="exportData">Export</button></div><div class="setting"><div><strong>Restore sample workspace</strong><p>Replace local checks with the original sample data.</p></div><button class="secondary danger" id="resetData">Reset</button></div></div></div><div class="modal-actions"><button class="primary" data-close>Done</button></div>`);
+  $('#exportData').addEventListener('click', () => { const blob = new Blob([JSON.stringify(state.checks,null,2)],{type:'application/json'}); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'ghostpulse-checks.json'; link.click(); setTimeout(() => URL.revokeObjectURL(link.href),1000); toast('Workspace exported.'); });
+  $('#resetData').addEventListener('click', () => { if (!confirm('Replace all local checks with sample data?')) return; state.checks = seedChecks(); save(); closeModal(); setView('overview'); toast('Sample workspace restored.'); });
+}
+function openHelp() {
+  openModal(`${modalHeader('Your first heartbeat in three steps','A dead man’s switch for the jobs you depend on.')}<div class="modal-body"><div class="settings-list"><div class="setting"><span class="workspace-icon">1</span><div><strong>Create a check</strong><p>Set how often the job runs and how long GhostPulse should wait before alerting.</p></div></div><div class="setting"><span class="workspace-icon">2</span><div><strong>Ping after a successful run</strong><p>Add the ping command to the end of your cron job. Use Start run and Report failure for more detail.</p></div></div><div class="setting"><span class="workspace-icon">3</span><div><strong>Let silence reveal the problem</strong><p>If period + grace passes without success, the check goes down. A success ping recovers it.</p></div></div></div><div class="notice"><strong>State flow:</strong> waiting / healthy → late (during grace) → down → healthy. Paused checks never alert.</div></div><div class="modal-actions"><button class="primary" id="helpCreate">${icon('plus')} Create a check</button></div>`);
+  $('#helpCreate').addEventListener('click',openNewCheck);
+}
+function closeMobile() { $('#sidebar').classList.remove('open'); $('#mobileOverlay').classList.add('hidden'); }
+$('#newCheckButton').addEventListener('click',openNewCheck);
+$('#helpButton').addEventListener('click',openHelp);
+$('#notificationButton').addEventListener('click',() => setView('incidents'));
+$('#insightButton').addEventListener('click',() => setView('incidents'));
+$('#searchInput').addEventListener('input',event => { state.search = event.target.value; renderChecks(); $('#resultCount').textContent = `${visibleChecks().length} of ${state.checks.length} checks`; });
+$('#tagFilter').addEventListener('change',event => { state.tag = event.target.value; renderChecks(); });
+$$('[data-tab]').forEach(button => button.addEventListener('click',() => { state.tab = button.dataset.tab; syncTabs(); renderChecks(); }));
+$$('[data-nav]').forEach(button => button.addEventListener('click',() => { const view = button.dataset.nav; if (view === 'integrations') openIntegrations(); else if (view === 'settings') openSettings(); else setView(view); closeMobile(); }));
+$('#menuButton').addEventListener('click',() => { $('#sidebar').classList.add('open'); $('#mobileOverlay').classList.remove('hidden'); });
+$('#mobileOverlay').addEventListener('click',closeMobile);
+$('#checksContainer').addEventListener('click',event => { if (event.target.closest('[data-action="new"]')) openNewCheck(); });
+document.addEventListener('keydown',event => { if (event.key === 'Escape') { closeModal(); closeMobile(); } });
+load(); evaluateAll(false); save(); render();
+clock = setInterval(() => { evaluateAll(); save(); render(); if (modalCheckId) openDetails(modalCheckId); },30000);
+window.ghostPulse = {getChecks:() => JSON.parse(JSON.stringify(state.checks)),tick:() => { evaluateAll(); save(); render(); }};
+</script>
+</body>
+</html>
