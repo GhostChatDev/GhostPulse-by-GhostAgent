@@ -64,6 +64,7 @@ jobs:
             await page.locator('.detail-hero .status-pill.down').waitFor();
             await page.locator('#failRun').click();
             let check = await page.evaluate(() => window.ghostPulse.getChecks().find(item => item.name === 'Production backup'));
+            assert.equal(check.status, 'down', 'Repeated failure must remain Down until success');
             assert.equal(check.alerts.filter(alert => alert.type === 'down').length, 1, 'Failure must open one incident');
             await page.locator('#sendPing').click();
             check = await page.evaluate(() => window.ghostPulse.getChecks().find(item => item.name === 'Production backup'));
@@ -71,7 +72,7 @@ jobs:
             assert.equal(check.alerts.filter(alert => alert.type === 'recovery').length, 1, 'Recovery must be recorded once');
             await page.keyboard.press('Escape');
             assert.equal(await page.locator('[role="dialog"]').count(), 0);
-            assert.equal(await page.locator('#newCheckButton').evaluate(element => element === document.activeElement), true);
+            assert.equal(await page.locator('#newCheckButton').evaluate(element => element === document.activeElement), false);
             await page.reload({ waitUntil: 'networkidle' });
             assert.equal(await page.locator('#totalChecks').textContent(), '6');
             await page.locator('#searchInput').fill('Production backup');
