@@ -84,6 +84,7 @@ const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&a
 const units = {minutes:60000,hours:3600000,days:86400000};
 let state = {checks:[], tab:'all', search:'', tag:'all', view:'overview', lastUpdate:now()};
 let modalCheckId = null;
+let modalTrigger = null;
 let clock = null;
 
 function seedChecks() {
@@ -205,6 +206,7 @@ function toast(message) {
   setTimeout(() => element.remove(), 3500);
 }
 function openModal(content, wide = false) {
+  if (!$('#modalRoot').children.length) modalTrigger = document.activeElement;
   $('#modalRoot').innerHTML = `<div class="overlay" id="overlay"><section class="modal ${wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="modalTitle">${content}</section></div>`;
   document.body.style.overflow = 'hidden';
   $$('[data-close]').forEach(button => button.addEventListener('click', closeModal));
@@ -212,9 +214,13 @@ function openModal(content, wide = false) {
   setTimeout(() => $('#modalRoot input, #modalRoot button')?.focus(), 0);
 }
 function closeModal() {
+  if (!$('#modalRoot').children.length) return;
   $('#modalRoot').replaceChildren();
   document.body.style.overflow = '';
   modalCheckId = null;
+  const trigger = modalTrigger;
+  modalTrigger = null;
+  if (trigger?.isConnected) trigger.focus();
 }
 function modalHeader(title, subtitle) {
   return `<div class="modal-head"><div><h2 id="modalTitle">${esc(title)}</h2><p>${esc(subtitle)}</p></div><button class="close" data-close aria-label="Close dialog">×</button></div>`;
