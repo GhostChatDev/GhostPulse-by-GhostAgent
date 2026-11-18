@@ -1,0 +1,61 @@
+name: GhostPulse web checks
+
+on:
+  push:
+    paths: ['index.html', '.github/workflows/swift.yml']
+  pull_request:
+    paths: ['index.html', '.github/workflows/swift.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          html = Path('index.html').read_text()
+          script = html.rsplit('<script>', 1)[1].split('</script>', 1)[0]
+          Path('/tmp/ghostpulse.js').write_text(script)
+          PY
+          node --check /tmp/ghostpulse.js
+      - name: Check document and interface contracts
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          html = Path('index.html').read_text()
+          class Audit(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.ids = []
+                  self.viewport = False
+              def handle_starttag(self, tag, attrs):
+                  values = dict(attrs)
+                  if 'id' in values:
+                      self.ids.append(values['id'])
+                  if tag == 'meta' and values.get('name') == 'viewport':
+                      self.viewport = True
+          audit = Audit()
+          audit.feed(html)
+          assert audit.viewport, 'Missing mobile viewport'
+          assert len(audit.ids) == len(set(audit.ids)), 'Duplicate element IDs'
+          required = {'newCheckButton', 'newCheckForm', 'searchInput', 'checksContainer', 'modalRoot', 'sidebar', 'menuButton'}
+          # The form is rendered by JavaScript; all other hooks must be in the HTML.
+          static_required = required - {'newCheckForm'}
+          missing = static_required - set(audit.ids)
+          assert not missing, f'Missing interface hooks: {missing}'
+          assert "id=\"newCheckForm\"" in html, 'Missing check creation form'
+          assert 'localStorage.setItem' in html, 'Missing local persistence'
+          assert 'evaluateCheck' in html, 'Missing lifecycle evaluator'
+          print('HTML structure, mobile viewport, and interface contracts passed')
+          PY
