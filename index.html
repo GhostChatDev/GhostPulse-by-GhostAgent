@@ -52,7 +52,7 @@
   <div class="sidebar-bottom"><div class="mini-status"><div><span class="pulse-dot"></span>All systems operational</div><small>Monitoring every 30 seconds</small></div><div class="user"><span class="avatar">GC</span><div><strong>Ghost Chat Dev</strong><small>Local workspace</small></div></div></div>
 </aside>
 <main class="main">
-  <header class="topbar"><div style="display:flex;align-items:center;gap:12px"><button class="icon-button mobile-menu" id="menuButton" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg><use href="#i-menu"/></svg></button><div class="mobile-brand"><span class="brand-mark"><svg><use href="#i-pulse"/></svg></span>GhostPulse</div><div class="breadcrumb">Ghost HQ <span style="margin:0 8px">/</span> <strong id="breadcrumb">Overview</strong></div></div><div class="top-actions"><button class="help" id="helpButton">Documentation</button><button class="icon-button" id="notificationButton" aria-label="View incidents"><svg><use href="#i-bell"/></svg><span class="notification-dot" id="notificationDot"></span></button></div></header>
+  <header class="topbar"><div style="display:flex;align-items:center;gap:12px"><button class="icon-button mobile-menu" id="menuButton" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><svg><use href="#i-menu"/></svg></button><div class="mobile-brand"><span class="brand-mark"><svg><use href="#i-pulse"/></svg></span>GhostPulse</div><div class="breadcrumb">Ghost HQ <span style="margin:0 8px">/</span> <strong id="breadcrumb">Overview</strong></div></div><div class="top-actions"><button class="help" id="helpButton">Documentation</button><button class="icon-button" id="notificationButton" aria-label="View incidents"><svg><use href="#i-bell"/></svg><span class="notification-dot" id="notificationDot"></span></button></div></header>
   <div class="content">
     <section class="page-heading"><div><p class="eyebrow">Your command center</p><h1 id="pageTitle">Good to see you, Ghost.</h1><p id="pageSubtitle">Here’s what’s happening across your scheduled jobs.</p></div><button class="primary" id="newCheckButton"><svg><use href="#i-plus"/></svg><span>New check</span></button></section>
     <section class="stats" aria-label="Monitoring summary">
@@ -84,7 +84,8 @@ const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&a
 const units = {minutes:60000,hours:3600000,days:86400000};
 let state = {checks:[], tab:'all', search:'', tag:'all', view:'overview', lastUpdate:now()};
 let modalCheckId = null;
-let modalPreviousFocus = null;
+let modalTrigger = null;
+let mobileMenuTrigger = null;
 let clock = null;
 
 function seedChecks() {
@@ -131,14 +132,14 @@ function record(check, type, message) {
   check.events = check.events.slice(0,100);
 }
 function evaluateCheck(check, notify = true) {
-  if (check.status === 'paused' || !check.lastPing || check.explicitFailure) return;
+  if (check.status === 'paused' || !check.lastPing) return;
   const t = now();
   const graceEnd = check.nextDue + check.grace * 60000;
   let next = check.status;
   if (check.startedAt && t >= check.startedAt + check.grace * 60000) next = 'down';
   else if (t >= graceEnd) next = 'down';
   else if (t >= check.nextDue) next = 'grace';
-  else if (check.status !== 'up') next = 'up';
+  else if (check.status !== 'up' && check.status !== 'down') next = 'up';
   if (next === check.status) return;
   check.status = next;
   if (next === 'down') {
@@ -206,28 +207,21 @@ function toast(message) {
   setTimeout(() => element.remove(), 3500);
 }
 function openModal(content, wide = false) {
-  if (!$('[role="dialog"]')) modalPreviousFocus = document.activeElement;
-  $('#modalRoot').innerHTML = `<div class="overlay" id="overlay"><section class="modal ${wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1">${content}</section></div>`;
+  if (!$('#modalRoot').children.length) modalTrigger = document.activeElement;
+  $('#modalRoot').innerHTML = `<div class="overlay" id="overlay"><section class="modal ${wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="modalTitle">${content}</section></div>`;
   document.body.style.overflow = 'hidden';
   $$('[data-close]').forEach(button => button.addEventListener('click', closeModal));
   $('#overlay').addEventListener('click', event => { if (event.target.id === 'overlay') closeModal(); });
-  const dialog = $('[role="dialog"]');
-  dialog.addEventListener('keydown', event => {
-    if (event.key !== 'Tab') return;
-    const items = [...dialog.querySelectorAll('button:not([disabled]),input,select,textarea,a[href],[tabindex="0"]')];
-    const first = items.at(0), last = items.at(-1);
-    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-  });
-  dialog.querySelector('input,select,textarea,button')?.focus();
+  setTimeout(() => $('#modalRoot input, #modalRoot button')?.focus(), 0);
 }
 function closeModal() {
-  if (!$('[role="dialog"]')) return;
+  if (!$('#modalRoot').children.length) return;
   $('#modalRoot').replaceChildren();
   document.body.style.overflow = '';
   modalCheckId = null;
-  modalPreviousFocus?.focus();
-  modalPreviousFocus = null;
+  const trigger = modalTrigger;
+  modalTrigger = null;
+  if (trigger?.isConnected) trigger.focus();
 }
 function modalHeader(title, subtitle) {
   return `<div class="modal-head"><div><h2 id="modalTitle">${esc(title)}</h2><p>${esc(subtitle)}</p></div><button class="close" data-close aria-label="Close dialog">×</button></div>`;
@@ -261,7 +255,7 @@ function refreshDetails(id) { save(); render(); openDetails(id); }
 function sendSuccess(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
   const t = now(), wasDown = check.status === 'down';
-  check.lastPing = t; check.nextDue = t + check.period * units[check.unit]; check.startedAt = null; check.explicitFailure = false; check.status = 'up'; check.pingCount++;
+  check.lastPing = t; check.nextDue = t + check.period * units[check.unit]; check.startedAt = null; check.status = 'up'; check.pingCount++;
   record(check,wasDown ? 'recovered' : 'success',wasDown ? 'Check recovered after a success ping' : 'Success ping received');
   if (wasDown) check.alerts.unshift({type:'recovery',time:t});
   refreshDetails(id); toast(wasDown ? 'Check recovered — one recovery event recorded.' : 'Success ping received.');
@@ -269,13 +263,12 @@ function sendSuccess(id) {
 function startRun(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
   if (check.status === 'paused' && !check.lastPing) { check.status = 'up'; check.lastPing = now(); check.nextDue = now() + check.period * units[check.unit]; }
-  check.explicitFailure = false;
   check.startedAt = now(); record(check,'started','Job reported a new run'); refreshDetails(id); toast('Run started. Send a test ping when it finishes.');
 }
 function failRun(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
   if (check.status !== 'down') { check.alerts.unshift({type:'down',time:now()}); record(check,'down','Explicit failure reported'); }
-  check.status = 'down'; check.explicitFailure = true; check.startedAt = null; record(check,'failure','Job exited with a failure'); refreshDetails(id); toast('Failure recorded and one incident opened.');
+  check.status = 'down'; check.startedAt = null; record(check,'failure','Job exited with a failure'); refreshDetails(id); toast('Failure recorded and one incident opened.');
 }
 function togglePause(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
@@ -316,7 +309,15 @@ function openHelp() {
   openModal(`${modalHeader('Your first heartbeat in three steps','A dead man’s switch for the jobs you depend on.')}<div class="modal-body"><div class="settings-list"><div class="setting"><span class="workspace-icon">1</span><div><strong>Create a check</strong><p>Set how often the job runs and how long GhostPulse should wait before alerting.</p></div></div><div class="setting"><span class="workspace-icon">2</span><div><strong>Ping after a successful run</strong><p>Add the ping command to the end of your cron job. Use Start run and Report failure for more detail.</p></div></div><div class="setting"><span class="workspace-icon">3</span><div><strong>Let silence reveal the problem</strong><p>If period + grace passes without success, the check goes down. A success ping recovers it.</p></div></div></div><div class="notice"><strong>State flow:</strong> waiting / healthy → late (during grace) → down → healthy. Paused checks never alert.</div></div><div class="modal-actions"><button class="primary" id="helpCreate">${icon('plus')} Create a check</button></div>`);
   $('#helpCreate').addEventListener('click',openNewCheck);
 }
-function closeMobile() { $('#sidebar').classList.remove('open'); $('#mobileOverlay').classList.add('hidden'); $('#menuButton').setAttribute('aria-expanded','false'); $('#menuButton').setAttribute('aria-label','Open navigation'); }
+function closeMobile(restoreFocus = false) {
+  const wasOpen = $('#sidebar').classList.contains('open');
+  $('#sidebar').classList.remove('open');
+  $('#mobileOverlay').classList.add('hidden');
+  $('#menuButton').setAttribute('aria-expanded', 'false');
+  $('#menuButton').setAttribute('aria-label', 'Open navigation');
+  if (wasOpen && restoreFocus) $('#menuButton').focus();
+  mobileMenuTrigger = null;
+}
 $('#newCheckButton').addEventListener('click',openNewCheck);
 $('#helpButton').addEventListener('click',openHelp);
 $('#notificationButton').addEventListener('click',() => setView('incidents'));
@@ -325,10 +326,25 @@ $('#searchInput').addEventListener('input',event => { state.search = event.targe
 $('#tagFilter').addEventListener('change',event => { state.tag = event.target.value; renderChecks(); });
 $$('[data-tab]').forEach(button => button.addEventListener('click',() => { state.tab = button.dataset.tab; syncTabs(); renderChecks(); }));
 $$('[data-nav]').forEach(button => button.addEventListener('click',() => { const view = button.dataset.nav; if (view === 'integrations') openIntegrations(); else if (view === 'settings') openSettings(); else setView(view); closeMobile(); }));
-$('#menuButton').addEventListener('click',() => { $('#sidebar').classList.add('open'); $('#mobileOverlay').classList.remove('hidden'); $('#menuButton').setAttribute('aria-expanded','true'); $('#menuButton').setAttribute('aria-label','Close navigation'); });
-$('#mobileOverlay').addEventListener('click',closeMobile);
+$('#menuButton').addEventListener('click',() => {
+  mobileMenuTrigger = document.activeElement;
+  $('#sidebar').classList.add('open');
+  $('#mobileOverlay').classList.remove('hidden');
+  $('#menuButton').setAttribute('aria-expanded', 'true');
+  $('#menuButton').setAttribute('aria-label', 'Close navigation');
+  $('#sidebar [data-nav="overview"]').focus();
+});
+$('#mobileOverlay').addEventListener('click',() => closeMobile(true));
 $('#checksContainer').addEventListener('click',event => { if (event.target.closest('[data-action="new"]')) openNewCheck(); });
-document.addEventListener('keydown',event => { if (event.key === 'Escape') { closeModal(); closeMobile(); } });
+document.addEventListener('keydown',event => {
+  if (event.key === 'Escape') { closeModal(); closeMobile(true); }
+  if (event.key === 'Tab' && $('#modalRoot').children.length) {
+    const focusable = $$('#modalRoot button:not([disabled]), #modalRoot input:not([disabled]), #modalRoot select:not([disabled]), #modalRoot textarea:not([disabled]), #modalRoot [tabindex="0"]');
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  }
+});
 load(); evaluateAll(false); save(); render();
 clock = setInterval(() => { evaluateAll(); save(); render(); if (modalCheckId) openDetails(modalCheckId); },30000);
 window.ghostPulse = {getChecks:() => JSON.parse(JSON.stringify(state.checks)),tick:() => { evaluateAll(); save(); render(); }};
