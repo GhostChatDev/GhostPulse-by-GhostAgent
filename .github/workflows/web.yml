@@ -36,7 +36,7 @@ jobs:
           node --check /tmp/ghostpulse.js
       - name: Install Chromium test browser
         run: |
-          npm install --no-save --no-package-lock playwright@1.58.2
+          npm install --no-save --no-package-lock playwright@1.61.0
           npx playwright install --with-deps chromium
       - name: Test production app in Chromium
         run: |
