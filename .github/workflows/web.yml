@@ -37,7 +37,7 @@ jobs:
       - name: Install Chromium test browser
         run: |
           npm install --no-save --no-package-lock playwright@1.58.2
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: Test production app in Chromium
         run: |
           python3 -m http.server 4173 --directory dist >/tmp/ghostpulse-server.log 2>&1 &
