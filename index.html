@@ -130,7 +130,7 @@ function record(check, type, message) {
   check.events = check.events.slice(0,100);
 }
 function evaluateCheck(check, notify = true) {
-  if (check.status === 'paused' || !check.lastPing || check.failed) return;
+  if (check.status === 'paused' || !check.lastPing) return;
   const t = now();
   const graceEnd = check.nextDue + check.grace * 60000;
   let next = check.status;
@@ -248,21 +248,20 @@ function refreshDetails(id) { save(); render(); openDetails(id); }
 function sendSuccess(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
   const t = now(), wasDown = check.status === 'down';
-  check.lastPing = t; check.nextDue = t + check.period * units[check.unit]; check.startedAt = null; check.failed = false; check.status = 'up'; check.pingCount++;
+  check.lastPing = t; check.nextDue = t + check.period * units[check.unit]; check.startedAt = null; check.status = 'up'; check.pingCount++;
   record(check,wasDown ? 'recovered' : 'success',wasDown ? 'Check recovered after a success ping' : 'Success ping received');
   if (wasDown) check.alerts.unshift({type:'recovery',time:t});
   refreshDetails(id); toast(wasDown ? 'Check recovered — one recovery event recorded.' : 'Success ping received.');
 }
 function startRun(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
-  check.failed = false;
   if (check.status === 'paused' && !check.lastPing) { check.status = 'up'; check.lastPing = now(); check.nextDue = now() + check.period * units[check.unit]; }
   check.startedAt = now(); record(check,'started','Job reported a new run'); refreshDetails(id); toast('Run started. Send a test ping when it finishes.');
 }
 function failRun(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
   if (check.status !== 'down') { check.alerts.unshift({type:'down',time:now()}); record(check,'down','Explicit failure reported'); }
-  check.status = 'down'; check.failed = true; check.startedAt = null; record(check,'failure','Job exited with a failure'); refreshDetails(id); toast('Failure recorded and one incident opened.');
+  check.status = 'down'; check.startedAt = null; record(check,'failure','Job exited with a failure'); refreshDetails(id); toast('Failure recorded and one incident opened.');
 }
 function togglePause(id) {
   const check = state.checks.find(c => c.id === id); if (!check) return;
@@ -303,7 +302,7 @@ function openHelp() {
   openModal(`${modalHeader('Your first heartbeat in three steps','A dead man’s switch for the jobs you depend on.')}<div class="modal-body"><div class="settings-list"><div class="setting"><span class="workspace-icon">1</span><div><strong>Create a check</strong><p>Set how often the job runs and how long GhostPulse should wait before alerting.</p></div></div><div class="setting"><span class="workspace-icon">2</span><div><strong>Ping after a successful run</strong><p>Add the ping command to the end of your cron job. Use Start run and Report failure for more detail.</p></div></div><div class="setting"><span class="workspace-icon">3</span><div><strong>Let silence reveal the problem</strong><p>If period + grace passes without success, the check goes down. A success ping recovers it.</p></div></div></div><div class="notice"><strong>State flow:</strong> waiting / healthy → late (during grace) → down → healthy. Paused checks never alert.</div></div><div class="modal-actions"><button class="primary" id="helpCreate">${icon('plus')} Create a check</button></div>`);
   $('#helpCreate').addEventListener('click',openNewCheck);
 }
-function closeMobile() { $('#sidebar').classList.remove('open'); $('#mobileOverlay').classList.add('hidden'); $('#menuButton').setAttribute('aria-expanded','false'); }
+function closeMobile() { $('#sidebar').classList.remove('open'); $('#mobileOverlay').classList.add('hidden'); }
 $('#newCheckButton').addEventListener('click',openNewCheck);
 $('#helpButton').addEventListener('click',openHelp);
 $('#notificationButton').addEventListener('click',() => setView('incidents'));
@@ -312,7 +311,7 @@ $('#searchInput').addEventListener('input',event => { state.search = event.targe
 $('#tagFilter').addEventListener('change',event => { state.tag = event.target.value; renderChecks(); });
 $$('[data-tab]').forEach(button => button.addEventListener('click',() => { state.tab = button.dataset.tab; syncTabs(); renderChecks(); }));
 $$('[data-nav]').forEach(button => button.addEventListener('click',() => { const view = button.dataset.nav; if (view === 'integrations') openIntegrations(); else if (view === 'settings') openSettings(); else setView(view); closeMobile(); }));
-$('#menuButton').addEventListener('click',() => { const open = $('#sidebar').classList.toggle('open'); $('#mobileOverlay').classList.toggle('hidden', !open); $('#menuButton').setAttribute('aria-expanded', String(open)); });
+$('#menuButton').addEventListener('click',() => { $('#sidebar').classList.add('open'); $('#mobileOverlay').classList.remove('hidden'); });
 $('#mobileOverlay').addEventListener('click',closeMobile);
 $('#checksContainer').addEventListener('click',event => { if (event.target.closest('[data-action="new"]')) openNewCheck(); });
 document.addEventListener('keydown',event => { if (event.key === 'Escape') { closeModal(); closeMobile(); } });
