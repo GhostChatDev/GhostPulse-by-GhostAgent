@@ -2,6 +2,7 @@ name: Web App Build
 
 on:
   push:
+    branches: [main]
     paths: ['index.html', '.github/workflows/web.yml']
   pull_request:
     paths: ['index.html', '.github/workflows/web.yml']
@@ -9,6 +10,12 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build-and-test:
@@ -104,3 +111,21 @@ jobs:
           name: ghostpulse-web
           path: dist
           retention-days: 7
+      - name: Upload Pages artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-and-test
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
